@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monster · web dev hack lab</title>
+    <!-- Fonts & base styling -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0b0f1c;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(10, 255, 150, 0.03) 0%, transparent 20%),
+                radial-gradient(circle at 80% 70%, rgba(0, 180, 255, 0.03) 0%, transparent 25%),
+                repeating-linear-gradient(0deg, rgba(0, 255, 200, 0.02) 0px, rgba(0, 0, 0, 0) 2px, transparent 4px);
+            min-height: 100vh;
+            font-family: 'Share Tech Mono', 'Courier New', monospace;
+            color: #a0f2e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            position: relative;
+        }
+
+        /* glitchy scan lines */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, rgba(0, 255, 180, 0.02) 0px, rgba(0, 0, 0, 0.4) 1px, transparent 2px);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .terminal-wrapper {
+            max-width: 760px;
+            width: 100%;
+            background: rgba(10, 20, 30, 0.7);
+            backdrop-filter: blur(6px);
+            border: 2px solid #2affb6;
+            box-shadow: 0 0 30px #1effbc4d, 0 0 5px #0f0 inset;
+            padding: 2rem 2rem 2.5rem;
+            border-radius: 18px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* ascii header */
+        .monster-ascii {
+            font-size: clamp(0.7rem, 2.5vw, 1rem);
+            line-height: 1.2;
+            text-align: center;
+            color: #b5ffe0;
+            text-shadow: 0 0 5px #0f0, 0 0 12px #0fa;
+            white-space: pre;
+            letter-spacing: 2px;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px dashed #2affb6;
+            padding-bottom: 0.8rem;
+        }
+
+        .glitch {
+            color: #b0ffde;
+            font-size: 2.6rem;
+            font-weight: normal;
+            text-align: center;
+            text-shadow: 3px 0 #ff00b3, -3px 0 #0ff;
+            animation: glitch-shake 0.3s infinite alternate;
+            word-break: break-word;
+        }
+
+        @keyframes glitch-shake {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 1px); }
+            40% { transform: translate(2px, -1px); }
+            60% { transform: translate(-1px, 0); }
+            80% { transform: translate(1px, 1px); }
+            100% { transform: translate(0); }
+        }
+
+        .status-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem 1.5rem;
+            justify-content: center;
+            margin: 1.8rem 0 2rem;
+            background: #0f1a1f;
+            padding: 1rem;
+            border-radius: 40px;
+            border: 1px solid #17e6b0;
+            box-shadow: inset 0 0 20px #000, 0 0 15px #00bc8c;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.2rem;
+        }
+
+        .blink {
+            animation: blinker 1.2s step-end infinite;
+        }
+
+        @keyframes blinker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        .dot {
+            height: 14px;
+            width: 14px;
+            background: #1affa0;
+            border-radius: 50%;
+            box-shadow: 0 0 12px #00ff88;
+            display: inline-block;
+        }
+
+        /* login box — exactly monster / niki25 */
+        .login-panel {
+            background: #05100e;
+            border: 2px solid #26e6a4;
+            border-radius: 28px;
+            padding: 2rem 2rem 1.8rem;
+            box-shadow: 0 0 30px #1affa04d, inset 0 0 10px #0a4d3b;
+            margin: 1.8rem 0 2rem;
+        }
+
+        .login-title {
+            color: #c3ffe7;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .login-title span {
+            font-size: 2rem;
+        }
+
+        .input-group {
+            margin: 1.5rem 0;
+        }
+
+        .input-row {
+            background: #031010;
+            border: 1px solid #20e6b0;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            margin: 18px 0;
+            padding: 0.5rem 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .input-row:focus-within {
+            border-color: #ff66d8;
+            box-shadow: 0 0 20px #fa0aff;
+        }
+
+        .input-row label {
+            width: 90px;
+            color: #a0ffcf;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 1.2rem;
+            text-shadow: 0 0 5px #0f0;
+        }
+
+        .input-row input {
+            background: transparent;
+            border: none;
+            flex: 1;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.4rem;
+            color: #f0ffe0;
+            outline: none;
+            padding: 0.2rem 0.5rem;
+        }
+
+        .input-row input::placeholder {
+            color: #1c7059;
+            font-size: 1rem;
+        }
+
+        .reveal-btn {
+            background: none;
+            border: 1px solid #3effb8;
+            color: #beffe0;
+            padding: 0.2rem 1rem;
+            border-radius: 40px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-left: 8px;
+        }
+
+        .reveal-btn:hover {
+            background: #1affa0;
+            color: #000;
+            border-color: #ff00c8;
+            box-shadow: 0 0 15px #ff00c8;
+        }
+
+        .access-button {
+            background: transparent;
+            border: 2px solid #0f0;
+            color: #b4ffe0;
+            font-size: 2rem;
+            padding: 0.7rem 2rem;
+            border-radius: 60px;
+            width: 100%;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin: 1rem 0 0.5rem;
+            box-shadow: 0 0 30px #00e676;
+        }
+
+        .access-button:hover {
+            background: #0f0;
+            color: #010a0f;
+            text-shadow: none;
+            box-shadow: 0 0 70px #aeff00;
+            border-color: #fa00c9;
+        }
+
+        .cred-hint {
+            text-align: center;
+            color: #83cfa7;
+            margin: 0.8rem 0 0;
+            font-size: 1.2rem;
+            background: #08211c;
+            padding: 0.4rem;
+            border-radius: 40px;
+        }
+
+        .cred-hint strong {
+            color: #f0f;
+            background: #021008;
+            padding: 0.2rem 0.8rem;
+            border-radius: 30px;
+            font-weight: normal;
+        }
+
+        .access-granted {
+            margin-top: 2rem;
+            border-top: 2px solid #21ffb5;
+            padding: 1.8rem 0.5rem 0.5rem;
+            display: none;
+            text-align: center;
+        }
+
+        .access-granted.show {
+            display: block;
+        }
+
+        .granted-content {
+            background: #00110e;
+            border-radius: 30px;
+            padding: 2rem 1.5rem;
+            border: 2px solid #fe60f5;
+            box-shadow: 0 0 60px #c851ff;
+        }
+
+        .hack-animation {
+            font-size: 1.6rem;
+            color: #c3ffe0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+        }
+
+        .hack-animation .blink {
+            background: #00ffb3;
+            width: 50px;
+            height: 20px;
+        }
+
+        .matrix-badge {
+            background: black;
+            color: #0f0;
+            padding: 1rem;
+            border-radius: 50px;
+            font-size: 2rem;
+            letter-spacing: 5px;
+            border: 2px dashed #f0f;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            color: #3f9e83;
+        }
+
+        footer a {
+            color: #b2f0d0;
+            text-decoration: none;
+            border-bottom: 1px dotted;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-wrapper">
+        <!-- monster ascii (hacking vibe) -->
+        <div class="monster-ascii">
+            <pre>┌─┐┌─┐┌┐┌┌─┐┌─┐┌┬┐  ╔═╗╔═╗╔╦╗╔═╗╔╗╔</pre>
+            <pre>│  │ ││││└─┐├┤  │   ║  ║ ║ ║║║╣ ║║║</pre>
+            <pre>└─┘└─┘┘└┘└─┘└─┘ ┴   ╚═╝╚═╝═╩╝╚═╝╝╚╝</pre>
+        </div>
+
+        <h1 class="glitch">MONSTER//DEV</h1>
+
+        <!-- live status (web developer / hacker energy) -->
+        <div class="status-bar">
+            <div class="status-item"><span class="dot blink"></span> #root: web_dev</div>
+            <div class="status-item"><span class="dot"></span> exploit: JS/CSS</div>
+            <div class="status-item"><span class="dot blink"></span> 0day: monster</div>
+        </div>
+
+        <!-- LOGIN PANEL with exactly monster / niki25 -->
+        <div class="login-panel" id="loginPanel">
+            <div class="login-title">
+                <span>⚡</span> AUTH::HACKLAB <span>⚡</span>
+            </div>
+            <div class="input-group">
+                <!-- Login: monstar (as per request "loging name & paswed - name - monstar - paswed - niki25") -->
+                <div class="input-row">
+                    <label>LOGIN</label>
+                    <input type="text" id="loginName" value="monstar" placeholder="monstar">
+                </div>
+                <div class="input-row">
+                    <label>PASS</label>
+                    <input type="password" id="loginPass" value="niki25" placeholder="••••••">
+                    <button class="reveal-btn" id="togglePassBtn" type="button">👁️</button>
+                </div>
+            </div>
+
+            <button class="access-button" id="accessBtn">▶ INITIATE</button>
+            <div class="cred-hint">
+                <strong>monstar</strong> : <strong>niki25</strong> (pre‑loaded)
+            </div>
+        </div>
+
+        <!-- GRANTED AREA (hidden until correct login) -->
+        <div class="access-granted" id="grantedArea">
+            <div class="granted-content">
+                <div style="font-size:3rem; filter: drop-shadow(0 0 10px #0f0);">🔥</div>
+                <div class="hack-animation">
+                    <span> ACCESS GRANTED</span>
+                    <span class="dot" style="width:30px;"></span>
+                </div>
+                <div style="font-size: 1.8rem; margin: 20px 0; background: #0a1f1a; padding: 0.8rem; border-radius: 48px;">
+                    ⚡ <span style="color:#ffb3ff;">monster · web developer</span> ⚡
+                </div>
+                <div class="matrix-badge">
+                    # niki25 : monster#root
+                </div>
+                <p style="margin-top: 1.5rem; font-size: 1.2rem;">
+                    > shell: monster_dev@lab ~ $<br>
+                    > you have unlocked the monster stack (HTML/CSS/JS)
+                </p>
+                <div style="display: flex; gap: 1rem; justify-content: center; margin: 1.8rem 0 0.5rem;">
+                    <span style="border:1px solid #0f0; padding:0.4rem 1.5rem; border-radius: 30px;">React</span>
+                    <span style="border:1px solid #f0f; padding:0.4rem 1.5rem; border-radius: 30px;">Node</span>
+                    <span style="border:1px solid #0ff; padding:0.4rem 1.5rem; border-radius: 30px;">SQL</span>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <span style="opacity:0.7;">#monster web hacking / promo page · credentials: <span style="background:#021008; padding:3px 12px;">monstar / niki25</span></span>
+        </footer>
+    </div>
+
+    <script>
+        (function() {
+            // fixed credentials (exactly as requested)
+            const VALID_LOGIN = "monstar";
+            const VALID_PASS = "niki25";
+
+            const loginInput = document.getElementById('loginName');
+            const passInput = document.getElementById('loginPass');
+            const accessBtn = document.getElementById('accessBtn');
+            const grantedArea = document.getElementById('grantedArea');
+            const loginPanel = document.getElementById('loginPanel');
+            const toggleBtn = document.getElementById('togglePassBtn');
+
+            // pre-fill values (already in html, but double ensure)
+            loginInput.value = "monstar";
+            passInput.value = "niki25";
+
+            // toggle password visibility (optional)
+            toggleBtn.addEventListener('click', function() {
+                const type = passInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passInput.setAttribute('type', type);
+                toggleBtn.textContent = type === 'password' ? '👁️' : '🔓';
+            });
+
+            // login function
+            function attemptLogin() {
+                const enteredLogin = loginInput.value.trim();
+                const enteredPass = passInput.value;  // don't trim password (niki25 has no spaces)
+
+                if (enteredLogin === VALID_LOGIN && enteredPass === VALID_PASS) {
+                    grantedArea.classList.add('show');
+                    // optional: small effect to login panel
+                    loginPanel.style.opacity = '0.7';
+                    loginPanel.style.transition = '0.3s';
+                    // add an ephemeral success flash
+                    const style = document.createElement('style');
+                    style.innerHTML = `
+                        .login-panel { border-color: #00ffff; box-shadow: 0 0 80px #00ffe0; }
+                        .access-granted { animation: glitch-shake 0.2s 2; }
+                    `;
+                    document.head.appendChild(style);
+                    setTimeout(() => style.remove(), 600);
+                } else {
+                    // incorrect — glitch effect
+                    loginPanel.style.borderColor = '#ff44ee';
+                    loginPanel.style.boxShadow = '0 0 50px #ff00b3';
+                    grantedArea.classList.remove('show');
+                    
+                    // shaking feedback
+                    loginPanel.style.transform = 'translateX(-4px)';
+                    setTimeout(() => loginPanel.style.transform = 'translateX(4px)', 50);
+                    setTimeout(() => loginPanel.style.transform = 'translateX(-2px)', 100);
+                    setTimeout(() => loginPanel.style.transform = 'translateX(2px)', 150);
+                    setTimeout(() => loginPanel.style.transform = 'translateX(0)', 200);
+                    
+                    // reset border after 600ms
+                    setTimeout(() => {
+                        loginPanel.style.borderColor = '#26e6a4';
+                        loginPanel.style.boxShadow = '0 0 30px #1affa04d, inset 0 0 10px #0a4d3b';
+                    }, 600);
+                    
+                    // optional: tiny alert but not intrusive
+                    const hint = document.querySelector('.cred-hint');
+                    hint.style.color = '#ff99cc';
+                    setTimeout(() => hint.style.color = '#83cfa7', 500);
+                }
+            }
+
+            // click on INITIATE button
+            accessBtn.addEventListener('click', attemptLogin);
+
+            // allow Enter key on inputs
+            loginInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptLogin(); });
+            passInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptLogin(); });
+
+            // also if user edits fields they can still go back, we keep granted hidden if wrong
+            // but if they change after granted, we optionally hide granted (nice)
+            loginInput.addEventListener('input', function() {
+                if (grantedArea.classList.contains('show')) {
+                    const currLogin = loginInput.value.trim();
+                    const currPass = passInput.value;
+                    if (currLogin !== VALID_LOGIN || currPass !== VALID_PASS) {
+                        grantedArea.classList.remove('show');
+                        loginPanel.style.opacity = '1';
+                    }
+                }
+            });
+
+            passInput.addEventListener('input', function() {
+                if (grantedArea.classList.contains('show')) {
+                    const currLogin = loginInput.value.trim();
+                    const currPass = passInput.value;
+                    if (currLogin !== VALID_LOGIN || currPass !== VALID_PASS) {
+                        grantedArea.classList.remove('show');
+                        loginPanel.style.opacity = '1';
+                    }
+                }
+            });
+
+            // initial: check if prefilled matches (they do), but we don't automatically show granted
+            // wait for button click, that's more realistic.
+            // but we can auto show? no, better keep as interactive demo: click to see magic.
+            // However for promotion they might want instant display? we stay with click.
+            // But we also include a tiny style to remind credentials.
+
+            // Additional: if user wants quick preview, they just click.
+            // make the reveal button fun
+
+            // Also adjust the login panel to show default values clearly.
+            // (done)
+
+            // Add a little "auto-login" demo? but not needed. Use the click.
+            // BUT double click on header? not necessary.
+
+            // on load, we pre-highlight granted stays hidden until click.
+
+            // make it clear that monstar / niki25 works (prefilled + hint)
+        })();
+    </script>
+
+    <!-- Extra matrix effect (just background) -->
+    <div style="position: fixed; bottom: 5px; right: 5px; opacity: 0.15; font-size: 3rem; pointer-events: none; z-index: 0;">👾</div>
+</body>
+</html>
